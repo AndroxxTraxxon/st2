@@ -16,6 +16,19 @@ else
 	VIRTUALENV_COMPONENTS_DIR ?= virtualenv-components
 endif
 
+ifeq ($(filter /%, $(VIRTUALENV_DIR)),)
+	VIRTUALENV_DIR := ${ROOT_DIR}/${VIRTUALENV_DIR}
+endif
+ifeq ($(filter /%, $(VIRTUALENV_ST2CLIENT_DIR)),)
+	VIRTUALENV_ST2CLIENT_DIR := ${ROOT_DIR}/${VIRTUALENV_ST2CLIENT_DIR}
+endif
+ifeq ($(filter /%, $(VIRTUALENV_ST2CLIENT_PYPI_DIR)),)
+	VIRTUALENV_ST2CLIENT_PYPI_DIR := ${ROOT_DIR}/${VIRTUALENV_ST2CLIENT_PYPI_DIR}
+endif
+ifeq ($(filter /%, $(VIRTUALENV_COMPONENTS_DIR)),)
+	VIRTUALENV_COMPONENTS_DIR := ${ROOT_DIR}/${VIRTUALENV_COMPONENTS_DIR}
+endif
+
 # Assign PYTHON_VERSION if it doesn't already exist
 PYTHON_VERSION ?= python3
 
@@ -56,7 +69,7 @@ REQUIREMENTS := test-requirements.txt requirements.txt
 
 # Pin common pip version here across all the targets
 # Note! Periodic maintenance pip upgrades are required to be up-to-date with the latest pip security fixes and updates
-PIP_VERSION ?= 20.3.3
+PIP_VERSION ?= 23.1.2
 SETUPTOOLS_VERSION ?= 51.3.3
 PIP_OPTIONS := $(ST2_PIP_OPTIONS)
 
@@ -257,7 +270,7 @@ check-python-packages:
 		echo "==========================================================="; \
 		echo "Checking component:" $$component; \
 		echo "==========================================================="; \
-		(set -e; cd $$component; ../$(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py --version) || exit 1; \
+		(set -e; cd $$component; $(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py --version) || exit 1; \
 	done
 
 .PHONY: check-python-packages-nightly
@@ -274,9 +287,9 @@ check-python-packages-nightly:
 		echo "==========================================================="; \
 		echo "Checking component:" $$component; \
 		echo "==========================================================="; \
-		(set -e; cd $$component; ../$(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py --version) || exit 1; \
-		(set -e; cd $$component; ../$(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py sdist bdist_wheel) || exit 1; \
-		(set -e; cd $$component; ../$(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py develop --no-deps) || exit 1; \
+		(set -e; cd $$component; $(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py --version) || exit 1; \
+		(set -e; cd $$component; $(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py sdist bdist_wheel) || exit 1; \
+		(set -e; cd $$component; $(VIRTUALENV_COMPONENTS_DIR)/bin/python setup.py develop --no-deps) || exit 1; \
 		($(VIRTUALENV_COMPONENTS_DIR)/bin/python -c "import $$component") || exit 1; \
 		(set -e; cd $$component; rm -rf dist/; rm -rf $$component.egg-info) || exit 1; \
 	done
@@ -510,7 +523,7 @@ flake8: requirements .flake8
 	$(VIRTUALENV_ST2CLIENT_PYPI_DIR)/bin/pip install --upgrade "restructuredtext-lint"
 
 	# Check with readme-renderer
-	. $(VIRTUALENV_ST2CLIENT_PYPI_DIR)/bin/activate; cd st2client ; ../$(VIRTUALENV_ST2CLIENT_PYPI_DIR)/bin/python -m readme_renderer README.rst
+	. $(VIRTUALENV_ST2CLIENT_PYPI_DIR)/bin/activate; cd st2client ; $(VIRTUALENV_ST2CLIENT_PYPI_DIR)/bin/python -m readme_renderer README.rst
 	# Check with rst-lint - encounters errors that readme_renderer doesn't, but pypi complains about
 	. $(VIRTUALENV_ST2CLIENT_PYPI_DIR)/bin/activate; cd st2client ; rst-lint README.rst
 
@@ -537,7 +550,7 @@ flake8: requirements .flake8
 	$(VIRTUALENV_ST2CLIENT_DIR)/bin/pip install --upgrade "pip==$(PIP_VERSION)"
 	$(VIRTUALENV_ST2CLIENT_DIR)/bin/pip install --upgrade "setuptools==$(SETUPTOOLS_VERSION)"
 
-	$(VIRTUALENV_ST2CLIENT_DIR)/bin/activate; cd st2client ; ../$(VIRTUALENV_ST2CLIENT_DIR)/bin/python setup.py install ; cd ..
+	$(VIRTUALENV_ST2CLIENT_DIR)/bin/activate; cd st2client ; $(VIRTUALENV_ST2CLIENT_DIR)/bin/python setup.py install ; cd ..
 	$(VIRTUALENV_ST2CLIENT_DIR)/bin/st2 --version
 	$(VIRTUALENV_ST2CLIENT_DIR)/bin/python -c "import st2client"
 
@@ -707,19 +720,19 @@ requirements: virtualenv .requirements .sdist-requirements install-runners insta
 	# NOTE: We pass --no-deps to the script so we don't install all the
 	# package dependencies which are already installed as part of "requirements"
 	# make targets. This speeds up the build
-	(cd ${ROOT_DIR}/st2common; ${ROOT_DIR}/$(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
+	(cd ${ROOT_DIR}/st2common; $(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
 
 	# Install st2common to register metrics drivers
 	# NOTE: We pass --no-deps to the script so we don't install all the
 	# package dependencies which are already installed as part of "requirements"
 	# make targets. This speeds up the build
-	(cd ${ROOT_DIR}/st2common; ${ROOT_DIR}/$(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
+	(cd ${ROOT_DIR}/st2common; $(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
 
 	# Install st2auth to register SSO drivers
 	# NOTE: We pass --no-deps to the script so we don't install all the
 	# package dependencies which are already installed as part of "requirements"
 	# make targets. This speeds up the build
-	(cd ${ROOT_DIR}/st2auth; ${ROOT_DIR}/$(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
+	(cd ${ROOT_DIR}/st2auth; $(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
 
 	# Some of the tests rely on submodule so we need to make sure submodules are check out
 	git submodule update --init --recursive --remote
@@ -1058,7 +1071,7 @@ packs-tests: requirements .packs-tests
 	@echo "==================== packs-tests ===================="
 	@echo
 	# Install st2common to register metrics drivers
-	(cd ${ROOT_DIR}/st2common; ${ROOT_DIR}/$(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
+	(cd ${ROOT_DIR}/st2common; $(VIRTUALENV_DIR)/bin/python setup.py develop --no-deps)
 	. $(VIRTUALENV_DIR)/bin/activate; find ${ROOT_DIR}/contrib/* -maxdepth 0 -type d -print0 | xargs -0 -I FILENAME ./st2common/bin/st2-run-pack-tests -c -t -x -p FILENAME
 
 
