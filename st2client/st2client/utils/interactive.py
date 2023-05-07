@@ -20,9 +20,7 @@ import re
 import six
 import jsonschema
 from jsonschema import Draft3Validator
-from prompt_toolkit import prompt
-from prompt_toolkit import token
-from prompt_toolkit import validation
+from prompt_toolkit import prompt, validation
 
 from st2client.exceptions.operations import OperationFailureException
 from six.moves import range
@@ -91,11 +89,7 @@ class StringReader(object):
 
     def _construct_description(self):
         if "description" in self.spec:
-
-            def get_bottom_toolbar_tokens(cli):
-                return [(token.Token.Toolbar, self.spec["description"])]
-
-            self.options["get_bottom_toolbar_tokens"] = get_bottom_toolbar_tokens
+            self.options["bottom_toolbar"] = self.spec["description"]
 
     def _construct_template(self):
         self.template = "{0}: "

@@ -1,32 +1,42 @@
 ROOT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 SHELL := /bin/bash
 OS := $(shell uname)
+BUILD_MODE ?= develop
 
 # We separate the OSX X and Linux virtualenvs so we can run in a Docker
 # container (st2devbox) while doing things on our host Mac machine
-ifeq ($(OS),Darwin)
-	VIRTUALENV_DIR ?= virtualenv-osx
-	VIRTUALENV_ST2CLIENT_DIR ?= virtualenv-st2client-osx
-	VIRTUALENV_ST2CLIENT_PYPI_DIR ?= virtualenv-st2client-pypi-osx
-	VIRTUALENV_COMPONENTS_DIR ?= virtualenv-components-osx
-else
-	VIRTUALENV_DIR ?= virtualenv
-	VIRTUALENV_ST2CLIENT_DIR ?= virtualenv-st2client
-	VIRTUALENV_ST2CLIENT_PYPI_DIR ?= virtualenv-st2client-pypi
-	VIRTUALENV_COMPONENTS_DIR ?= virtualenv-components
+ifeq ($(BUILD_MODE), dist)
+	DIST_INSTALL_DIR ?= /opt/stackstorm
+	VIRTUALENV_DIR ?= $(DIST_INSTALL_DIR)/st2
+	VIRTUALENV_ST2CLIENT_DIR ?= $(VIRTUALENV_DIR)
+	VIRTUALENV_ST2CLIENT_PYPI_DIR ?= $(VIRTUALENV_DIR)
+	VIRTUALENV_COMPONENTS_DIR ?= $(VIRTUALENV_DIR)
+else 
+	ifeq ($(OS),Darwin)
+		VIRTUALENV_DIR ?= virtualenv-osx
+		VIRTUALENV_ST2CLIENT_DIR ?= virtualenv-st2client-osx
+		VIRTUALENV_ST2CLIENT_PYPI_DIR ?= virtualenv-st2client-pypi-osx
+		VIRTUALENV_COMPONENTS_DIR ?= virtualenv-components-osx
+	else
+		VIRTUALENV_DIR ?= virtualenv
+		VIRTUALENV_ST2CLIENT_DIR ?= virtualenv-st2client
+		VIRTUALENV_ST2CLIENT_PYPI_DIR ?= virtualenv-st2client-pypi
+		VIRTUALENV_COMPONENTS_DIR ?= virtualenv-components
+	endif
 endif
 
+# convert relative paths into full paths.
 ifeq ($(filter /%, $(VIRTUALENV_DIR)),)
-	VIRTUALENV_DIR := ${ROOT_DIR}/${VIRTUALENV_DIR}
+	override VIRTUALENV_DIR := ${ROOT_DIR}/$(VIRTUALENV_DIR)
 endif
 ifeq ($(filter /%, $(VIRTUALENV_ST2CLIENT_DIR)),)
-	VIRTUALENV_ST2CLIENT_DIR := ${ROOT_DIR}/${VIRTUALENV_ST2CLIENT_DIR}
+	override VIRTUALENV_ST2CLIENT_DIR := $(ROOT_DIR)/$(VIRTUALENV_ST2CLIENT_DIR)
 endif
 ifeq ($(filter /%, $(VIRTUALENV_ST2CLIENT_PYPI_DIR)),)
-	VIRTUALENV_ST2CLIENT_PYPI_DIR := ${ROOT_DIR}/${VIRTUALENV_ST2CLIENT_PYPI_DIR}
+	override VIRTUALENV_ST2CLIENT_PYPI_DIR := ${ROOT_DIR}/$(VIRTUALENV_ST2CLIENT_PYPI_DIR)
 endif
 ifeq ($(filter /%, $(VIRTUALENV_COMPONENTS_DIR)),)
-	VIRTUALENV_COMPONENTS_DIR := ${ROOT_DIR}/${VIRTUALENV_COMPONENTS_DIR}
+	override VIRTUALENV_COMPONENTS_DIR := ${ROOT_DIR}/$(VIRTUALENV_COMPONENTS_DIR)
 endif
 
 # Assign PYTHON_VERSION if it doesn't already exist
@@ -54,8 +64,7 @@ colon := :
 comma := ,
 dot := .
 slash := /
-space_char :=
-space_char +=
+space_char := ${null} ${null}
 COMPONENT_PYTHONPATH = $(subst $(space_char),:,$(realpath $(COMPONENTS_WITH_RUNNERS)))
 COMPONENTS_TEST := $(foreach component,$(filter-out $(COMPONENT_SPECIFIC_TESTS),$(COMPONENTS_WITH_RUNNERS)),$(component))
 COMPONENTS_TEST_COMMA := $(subst $(slash),$(dot),$(subst $(space_char),$(comma),$(COMPONENTS_TEST)))
@@ -134,6 +143,14 @@ all: requirements configgen check tests
 .PHONY: play
 play:
 	@echo PYTHON_VERSION=$(PYTHON_VERSION) \($$($(PYTHON_VERSION) --version)\)
+	@echo
+	@echo VIRTUALENV_DIR=$(VIRTUALENV_DIR)
+	@echo
+	@echo VIRTUALENV_ST2CLIENT_DIR=$(VIRTUALENV_ST2CLIENT_DIR)
+	@echo
+	@echo VIRTUALENV_ST2CLIENT_PYPI_DIR=$(VIRTUALENV_ST2CLIENT_PYPI_DIR)
+	@echo
+	@echo VIRTUALENV_COMPONENTS_DIR=$(VIRTUALENV_COMPONENTS_DIR)
 	@echo
 	@echo COVERAGE_GLOBS=$(COVERAGE_GLOBS_QUOTED)
 	@echo

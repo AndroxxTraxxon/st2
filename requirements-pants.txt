@@ -11,7 +11,8 @@ argcomplete
 ciso8601
 cryptography
 # eventlet 0.31+ and gunicorn 20.1.0 are not compatible
-eventlet<0.31
+# TODO: switch from pinned gunicorn to new version once a release is cut.
+eventlet>0.33
 # flex parses the openapi 2 spec in our router
 flex
 # gitpython & gitdb are used for pack management
@@ -42,8 +43,7 @@ pip
 # prance needs flex, but do not use the extra as that gets an old version.
 prance
 prettytable
-# For st2client: prompt-toolkit v2+ does not have prompt_toolkit.token.Token
-prompt-toolkit<2
+prompt-toolkit>3
 psutil
 pymongo
 # pyrabbit used in an integration test
